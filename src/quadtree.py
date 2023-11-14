@@ -1,9 +1,10 @@
 from __future__ import annotations
 from tkinter import *
-from tkinter import ttk
 
 class QuadTree:
     NB_NODES : int = 4
+    _depth : int = 0
+
     def __init__(self, hg: bool | QuadTree, hd: bool | QuadTree, bd: bool | QuadTree, bg: bool | QuadTree):
         self.hg = hg
         self.hd = hd
@@ -12,23 +13,23 @@ class QuadTree:
 
     @property
     def depth(self) -> int:
-        """ Recursion depth of the quadtree"""
-        return 1
+        return self._depth
 
     @staticmethod
     def fromFile(filename: str) -> QuadTree:
-        """"For entertaining :D"""
-        depthList = []
+        """Returns a Quadtree object from a file which must contains list [] and 0 or 1 representing the shape of the tree"""
+        """(I know there is a native function to do that :D)"""
+        saveList = []
         depth = 0
         list = None
         with open(filename, 'r') as file:
             char = file.read(1)
             while char:
-                if(len(depthList) != 0):
-                    list = depthList[depth - 1]    
+                if(len(saveList) != 0):
+                    list = saveList[depth - 1]    
                 elif(list == None):
                     list = []
-                
+
                 if(char == '0'):
                     list.append(0)
                 elif(char == '1'):
@@ -37,88 +38,69 @@ class QuadTree:
                     depth += 1
                     array = []
                     list.append(array)
-                    depthList.append(array)
+                    saveList.append(array)
                 elif(char == ']'):
                     depth -= 1
-                    depthList.pop()
+                    saveList.pop()
                 else:
                     pass
                 char = file.read(1)
         return QuadTree.fromList(list) 
 
     @staticmethod
-    def fromList(data: list):
-        test = []
-        for i, d in enumerate(data):
+    def fromList(data: list) -> QuadTree:
+        """Returns a quadtree from a list which contains other list or 0 or 1"""
+        paramList = []
+        depth = 0
+        for d in data:
             if isinstance(d, list):
-                test.append(QuadTree.fromList(d))
+                subQuadtree = QuadTree.fromList(d)
+                paramList.append(subQuadtree)
+                depth = max(depth, subQuadtree.depth)
             elif(d == 0):
-                test.append(False)
+                paramList.append(False)
             elif(d == 1):
-                test.append(True)
-        return QuadTree(*test)
+                paramList.append(True)
+        quadtree = QuadTree(*paramList)
+        quadtree._depth = depth + 1
+        return quadtree
+    
+    @depth.setter
+    def depth(self, value: int):
+        self._depth = value
 
-
-    @property
-    def hg(self) -> bool | "QuadTree":
-        return self._hg
-
-    @hg.setter
-    def hg(self, value: bool | "QuadTree") -> None:
-        self._hg = value
-
-    @property
-    def hd(self) -> bool | "QuadTree":
-        return self._hd
-
-    @hd.setter
-    def hd(self, value: bool | "QuadTree") -> None:
-        self._hd = value
-
-    @property
-    def bd(self) -> bool | "QuadTree":
-        return self._bd
-
-    @bd.setter
-    def bd(self, value: bool | "QuadTree") -> None:
-        self._bd = value
-
-    @property
-    def bg(self) -> bool | "QuadTree":
-        return self._bg
-
-    @bg.setter
-    def bg(self, value: bool | "QuadTree") -> None:
-        self._bg = value
 
 class TkQuadTree(QuadTree):
     def paint(self):
+        """Opens a window with a visual representation of self (quadtree)"""
         root = Tk()
         root.geometry('600x600')
-        TkQuadTree.iterateTree(self, root, depth=0)
+        TkQuadTree.drawQuadtree(self, root, depth=0)
         root.mainloop()
 
     @staticmethod
-    def iterateTree(tree : QuadTree, parent, depth):
-        TkQuadTree.methodeTest(tree.hg, parent, 0, 0, depth)
-        TkQuadTree.methodeTest(tree.hd, parent, 0, 1, depth)
-        TkQuadTree.methodeTest(tree.bg, parent, 1, 0, depth)
-        TkQuadTree.methodeTest(tree.bd, parent, 1, 1, depth)
+    def drawQuadtree(tree : QuadTree, parent : Frame | Tk, depth : int):
+        """Manages cells position"""
+        TkQuadTree.assignCell(tree.hg, parent, 0, 0, depth)
+        TkQuadTree.assignCell(tree.hd, parent, 0, 1, depth)
+        TkQuadTree.assignCell(tree.bd, parent, 1, 0, depth)
+        TkQuadTree.assignCell(tree.bg, parent, 1, 1, depth)
     
     @staticmethod
-    def methodeTest(tree : QuadTree | bool, parent, row, column, depth):
-        cell_size = 200 / (2 ** depth)
-        if isinstance(tree, QuadTree):
+    def assignCell(cell : QuadTree | bool, parent : Frame | Tk, row : int, column : int, depth : int):
+        """Manages cells content"""
+        cellSize = 300 / (2 ** depth)
+        if isinstance(cell, QuadTree):
             frame = Frame(parent)
-            frame.config(width=cell_size, height=cell_size)
-            frame.grid(row=row, column=column)
-            TkQuadTree.iterateTree(tree, frame, depth + 1)
+            frame.config(width=cellSize, height=cellSize)
+            frame.grid(row=row, column=column, sticky="nsew")
+            TkQuadTree.drawQuadtree(cell, frame, depth + 1)
             depth -= 1
-        elif(tree == True):
+        elif(cell == True):
             frame = Frame(parent)
-            frame.config(background="black", width=cell_size, height=cell_size)
-            frame.grid(row=row, column=column)
-        elif(tree == False):
+            frame.config(background="black", width=cellSize, height=cellSize)
+            frame.grid(row=row, column=column, sticky="nsew")
+        elif(cell == False):
             frame = Frame(parent)
-            frame.config(background="white", width=cell_size, height=cell_size)
-            frame.grid(row=row, column=column)
+            frame.config(background="white", width=cellSize, height=cellSize)
+            frame.grid(row=row, column=column, sticky="nsew")

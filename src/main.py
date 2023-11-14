@@ -1,7 +1,6 @@
 from quadtree import QuadTree
 from quadtree import TkQuadTree
 
-test = QuadTree.fromFile("files/quadtree.txt")
-print(test.bg)
-t = TkQuadTree(test.hg, test.hd, test.bg, test.bd)
-t.paint()
+quadtree = QuadTree.fromFile("files/quadtree.txt")
+quadtreeUI = TkQuadTree(quadtree.hg, quadtree.hd, quadtree.bd, quadtree.bg)
+quadtreeUI.paint()
